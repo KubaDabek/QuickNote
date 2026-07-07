@@ -2,6 +2,7 @@ package com.example.quicknote.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.io.Serializable
 
 @Entity(tableName = "notes")
 data class Note(
@@ -13,4 +14,4 @@ data class Note(
     val priority: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val reminderTime: Long = 0
-)
+) : Serializable

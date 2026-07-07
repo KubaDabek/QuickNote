@@ -4,11 +4,13 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.quicknote.data.Note
 import com.example.quicknote.ui.NoteAdapter
 import com.example.quicknote.ui.NoteViewModel
 import com.example.quicknote.ui.NoteViewModelFactory
@@ -32,10 +34,10 @@ class MainActivity : AppCompatActivity() {
 
         adapter = NoteAdapter(
             onNoteClick = { note ->
-                // To be implemented: Open AddEditNoteActivity for editing
+                openEditNoteScreen(note)
             },
             onNoteLongClick = { note ->
-                // To be implemented: Show delete confirmation or other options
+                showOptionsDialog(note)
             }
         )
 
@@ -57,9 +59,38 @@ class MainActivity : AppCompatActivity() {
         }
 
         fabAdd.setOnClickListener {
-            // To be implemented: Open AddEditNoteActivity for adding
-            // val intent = Intent(this, AddEditNoteActivity::class.java)
-            // startActivity(intent)
+            val intent = Intent(this, AddEditNoteActivity::class.java)
+            startActivity(intent)
         }
+    }
+
+    private fun openEditNoteScreen(note: Note) {
+        val intent = Intent(this, AddEditNoteActivity::class.java)
+        intent.putExtra(AddEditNoteActivity.EXTRA_NOTE, note)
+        startActivity(intent)
+    }
+
+    private fun showOptionsDialog(note: Note) {
+        val options = arrayOf("Edytuj", "Usuń")
+        AlertDialog.Builder(this)
+            .setTitle("Opcje")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> openEditNoteScreen(note)
+                    1 -> showDeleteConfirmationDialog(note)
+                }
+            }
+            .show()
+    }
+
+    private fun showDeleteConfirmationDialog(note: Note) {
+        AlertDialog.Builder(this)
+            .setTitle("Usuń notatkę")
+            .setMessage("Czy na pewno chcesz usunąć tę notatkę?")
+            .setPositiveButton("Usuń") { _, _ ->
+                noteViewModel.delete(note)
+            }
+            .setNegativeButton("Anuluj", null)
+            .show()
     }
 }
