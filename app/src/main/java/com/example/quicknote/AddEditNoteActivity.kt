@@ -3,6 +3,8 @@ package com.example.quicknote
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -16,8 +18,10 @@ class AddEditNoteActivity : AppCompatActivity() {
 
     private lateinit var editTextTitle: TextInputEditText
     private lateinit var editTextContent: TextInputEditText
+    private lateinit var spinnerCategory: Spinner
     private lateinit var noteViewModel: NoteViewModel
     private var currentNote: Note? = null
+    private val categories = arrayOf("Brak", "Praca", "Szkoła", "Dom", "Inne")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +33,11 @@ class AddEditNoteActivity : AppCompatActivity() {
 
         editTextTitle = findViewById(R.id.editTextTitle)
         editTextContent = findViewById(R.id.editTextContent)
+        spinnerCategory = findViewById(R.id.spinnerCategory)
+
+        val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
+        categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerCategory.adapter = categoryAdapter
 
         val factory = NoteViewModelFactory(application)
         noteViewModel = ViewModelProvider(this, factory)[NoteViewModel::class.java]
@@ -39,6 +48,7 @@ class AddEditNoteActivity : AppCompatActivity() {
                 title = "Edytuj notatkę"
                 editTextTitle.setText(it.title)
                 editTextContent.setText(it.content)
+                spinnerCategory.setSelection(it.categoryId)
             }
         } else {
             title = "Nowa notatka"
@@ -67,6 +77,7 @@ class AddEditNoteActivity : AppCompatActivity() {
     private fun saveNote() {
         val titleText = editTextTitle.text.toString().trim()
         val contentText = editTextContent.text.toString().trim()
+        val categoryId = spinnerCategory.selectedItemPosition
 
         if (titleText.isEmpty()) {
             Toast.makeText(this, "Podaj tytuł", Toast.LENGTH_SHORT).show()
@@ -74,10 +85,14 @@ class AddEditNoteActivity : AppCompatActivity() {
         }
 
         if (currentNote == null) {
-            val newNote = Note(title = titleText, content = contentText)
+            val newNote = Note(title = titleText, content = contentText, categoryId = categoryId)
             noteViewModel.insert(newNote)
         } else {
-            val updatedNote = currentNote!!.copy(title = titleText, content = contentText)
+            val updatedNote = currentNote!!.copy(
+                title = titleText,
+                content = contentText,
+                categoryId = categoryId
+            )
             noteViewModel.update(updatedNote)
         }
 

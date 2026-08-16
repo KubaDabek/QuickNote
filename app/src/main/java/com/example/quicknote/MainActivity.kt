@@ -2,10 +2,13 @@ package com.example.quicknote
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -14,6 +17,7 @@ import com.example.quicknote.data.Note
 import com.example.quicknote.ui.NoteAdapter
 import com.example.quicknote.ui.NoteViewModel
 import com.example.quicknote.ui.NoteViewModelFactory
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class MainActivity : AppCompatActivity() {
@@ -31,6 +35,19 @@ class MainActivity : AppCompatActivity() {
         val recyclerView: RecyclerView = findViewById(R.id.recyclerView)
         val textViewEmpty: TextView = findViewById(R.id.textViewEmpty)
         val fabAdd: FloatingActionButton = findViewById(R.id.fabAdd)
+        val chipGroupFilter: ChipGroup = findViewById(R.id.chipGroupFilter)
+
+        chipGroupFilter.setOnCheckedStateChangeListener { _, checkedIds ->
+            val checkedId = checkedIds.firstOrNull() ?: R.id.chipAll
+            val categoryId = when (checkedId) {
+                R.id.chipWork -> 1
+                R.id.chipSchool -> 2
+                R.id.chipHome -> 3
+                R.id.chipOther -> 4
+                else -> -1
+            }
+            noteViewModel.setFilterCategory(categoryId)
+        }
 
         adapter = NoteAdapter(
             onNoteClick = { note ->
@@ -62,6 +79,27 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, AddEditNoteActivity::class.java)
             startActivity(intent)
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        val searchItem = menu.findItem(R.id.action_search)
+        val searchView = searchItem.actionView as SearchView
+
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.hideSoftInputFromWindow(searchView.windowToken, 0)
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                noteViewModel.setSearchQuery(newText.orEmpty())
+                return true
+            }
+        })
+
+        return true
     }
 
     private fun openEditNoteScreen(note: Note) {

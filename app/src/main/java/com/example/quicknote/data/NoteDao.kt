@@ -22,6 +22,6 @@ interface NoteDao {
     @Delete
     suspend fun deleteNote(note: Note)
 
-    @Query("SELECT * FROM notes WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%'")
-    fun searchNotes(query: String): LiveData<List<Note>>
+    @Query("SELECT * FROM notes WHERE (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') AND (:categoryId = -1 OR categoryId = :categoryId) ORDER BY createdAt DESC")
+    fun searchNotes(query: String, categoryId: Int = -1): LiveData<List<Note>>
 }

@@ -43,6 +43,25 @@
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <TextView
+            android:id="@+id/textViewCategoryLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Kategoria:"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/textInputLayoutTitle" />
+
+        <Spinner
+            android:id="@+id/spinnerCategory"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            app:layout_constraintBottom_toBottomOf="@+id/textViewCategoryLabel"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/textViewCategoryLabel"
+            app:layout_constraintTop_toTopOf="@+id/textViewCategoryLabel" />
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/textInputLayoutContent"
             android:layout_width="0dp"
@@ -51,7 +70,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/textInputLayoutTitle">
+            app:layout_constraintTop_toBottomOf="@+id/textViewCategoryLabel">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/editTextContent"
