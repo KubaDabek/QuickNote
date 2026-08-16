@@ -9,12 +9,14 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.InputMethodManager
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.quicknote.data.Note
@@ -23,6 +25,7 @@ import com.example.quicknote.ui.NoteViewModel
 import com.example.quicknote.ui.NoteViewModelFactory
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.snackbar.Snackbar
 
 class MainActivity : AppCompatActivity() {
 
@@ -39,6 +42,7 @@ class MainActivity : AppCompatActivity() {
 
         val recyclerView: RecyclerView = findViewById(R.id.recyclerView)
         val textViewEmpty: TextView = findViewById(R.id.textViewEmpty)
+        val progressBar: ProgressBar = findViewById(R.id.progressBar)
         val fabAdd: FloatingActionButton = findViewById(R.id.fabAdd)
         val chipGroupFilter: ChipGroup = findViewById(R.id.chipGroupFilter)
 
@@ -66,10 +70,13 @@ class MainActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
+        setupSwipeToDelete(recyclerView)
+
         val factory = NoteViewModelFactory(application)
         noteViewModel = ViewModelProvider(this, factory)[NoteViewModel::class.java]
 
         noteViewModel.allNotes.observe(this) { notes ->
+            progressBar.visibility = View.GONE
             adapter.submitList(notes)
             if (notes.isEmpty()) {
                 textViewEmpty.visibility = View.VISIBLE
@@ -93,6 +100,7 @@ class MainActivity : AppCompatActivity() {
         fabAdd.setOnClickListener {
             val intent = Intent(this, AddEditNoteActivity::class.java)
             startActivity(intent)
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
         }
 
         requestNotificationPermission()
@@ -128,12 +136,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        menu.findItem(currentSortId)?.isChecked = true
+        // Znajdź sub-menu sortowania i zaznacz odpowiednią opcję "ptaszkiem"
+        val sortItem = menu.findItem(R.id.action_sort)
+        sortItem?.subMenu?.let { subMenu ->
+            for (i in 0 until subMenu.size()) {
+                val item = subMenu.getItem(i)
+                item.isChecked = (item.itemId == currentSortId)
+            }
+        }
         return super.onPrepareOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
+            R.id.action_settings -> {
+                val intent = Intent(this, SettingsActivity::class.java)
+                startActivity(intent)
+                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                true
+            }
             R.id.sort_date -> {
                 noteViewModel.setSortOption(NoteViewModel.SortOption.BY_DATE)
                 true
@@ -154,19 +175,46 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, AddEditNoteActivity::class.java)
         intent.putExtra(AddEditNoteActivity.EXTRA_NOTE, note)
         startActivity(intent)
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
     }
 
     private fun showOptionsDialog(note: Note) {
-        val options = arrayOf("Edytuj", "Usuń")
+        val options = arrayOf("Edytuj", "Udostępnij", "Usuń")
         AlertDialog.Builder(this)
             .setTitle("Opcje")
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> openEditNoteScreen(note)
-                    1 -> showDeleteConfirmationDialog(note)
+                    1 -> shareNote(note)
+                    2 -> showDeleteConfirmationDialog(note)
                 }
             }
             .show()
+    }
+
+    private fun shareNote(note: Note) {
+        val importance = if (note.priority == 1) "Ważna" else "Zwykła"
+        val category = when (note.categoryId) {
+            1 -> "Praca"
+            2 -> "Szkoła"
+            3 -> "Dom"
+            4 -> "Inne"
+            else -> "Brak"
+        }
+
+        val shareText = """
+            Ważność: $importance
+            Kategoria: $category
+            Tytuł: "${note.title}"
+            Tekst: "${note.content}"
+        """.trimIndent()
+
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, note.title)
+            putExtra(Intent.EXTRA_TEXT, shareText)
+        }
+        startActivity(Intent.createChooser(shareIntent, "Udostępnij notatkę"))
     }
 
     private fun showDeleteConfirmationDialog(note: Note) {
@@ -178,5 +226,30 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("Anuluj", null)
             .show()
+    }
+
+    private fun setupSwipeToDelete(recyclerView: RecyclerView) {
+        val swipeHandler = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean = false
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.adapterPosition
+                val noteToDelete = adapter.currentList[position]
+
+                noteViewModel.delete(noteToDelete)
+
+                Snackbar.make(recyclerView, "Usunięto notatkę", Snackbar.LENGTH_LONG)
+                    .setAction("Cofnij") {
+                        noteViewModel.insert(noteToDelete)
+                    }
+                    .show()
+            }
+        }
+        val itemTouchHelper = ItemTouchHelper(swipeHandler)
+        itemTouchHelper.attachToRecyclerView(recyclerView)
     }
 }

@@ -41,7 +41,10 @@
                     android:layout_height="wrap_content"
                     android:checked="true"
                     android:text="Wszystkie"
-                    app:chipBackgroundColor="@color/white" />
+                    app:chipBackgroundColor="@color/white"
+                    app:checkedIconVisible="true"
+                    app:checkedIconTint="@color/black"
+                    app:chipIconTint="@color/black" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipWork"
@@ -49,7 +52,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Praca"
-                    app:chipBackgroundColor="@color/white" />
+                    app:chipBackgroundColor="@color/white"
+                    app:checkedIconVisible="true"
+                    app:checkedIconTint="@color/black"
+                    app:chipIconTint="@color/black" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipSchool"
@@ -57,7 +63,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Szkoła"
-                    app:chipBackgroundColor="@color/white" />
+                    app:chipBackgroundColor="@color/white"
+                    app:checkedIconVisible="true"
+                    app:checkedIconTint="@color/black"
+                    app:chipIconTint="@color/black" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipHome"
@@ -65,7 +74,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Dom"
-                    app:chipBackgroundColor="@color/white" />
+                    app:chipBackgroundColor="@color/white"
+                    app:checkedIconVisible="true"
+                    app:checkedIconTint="@color/black"
+                    app:chipIconTint="@color/black" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chipOther"
@@ -73,7 +85,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Inne"
-                    app:chipBackgroundColor="@color/white" />
+                    app:chipBackgroundColor="@color/white"
+                    app:checkedIconVisible="true"
+                    app:checkedIconTint="@color/black"
+                    app:chipIconTint="@color/black" />
 
             </com.google.android.material.chip.ChipGroup>
         </HorizontalScrollView>
@@ -101,6 +116,15 @@
             android:layout_height="wrap_content"
             android:text="Brak notatek"
             android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"

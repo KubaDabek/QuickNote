@@ -8,21 +8,26 @@
         app:actionViewClass="androidx.appcompat.widget.SearchView"
         app:showAsAction="ifRoom|collapseActionView" />
     <item
+        android:id="@+id/action_settings"
+        android:icon="@drawable/ic_settings"
+        android:title="Ustawienia"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/action_sort"
         android:title="Sortuj">
         <menu>
-            <group android:checkableBehavior="single">
-                <item
-                    android:id="@+id/sort_date"
-                    android:checked="true"
-                    android:title="Według daty" />
-                <item
-                    android:id="@+id/sort_priority"
-                    android:title="Według priorytetu" />
-                <item
-                    android:id="@+id/sort_title"
-                    android:title="Według tytułu A-Z" />
-            </group>
+            <item
+                android:id="@+id/sort_date"
+                android:checkable="true"
+                android:title="Według daty" />
+            <item
+                android:id="@+id/sort_priority"
+                android:checkable="true"
+                android:title="Według priorytetu" />
+            <item
+                android:id="@+id/sort_title"
+                android:checkable="true"
+                android:title="Według tytułu A-Z" />
         </menu>
     </item>
 </menu>

@@ -15,12 +15,7 @@ class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val noteTitle = intent.getStringExtra("NOTE_TITLE") ?: "Przypomnienie o notatce"
         val noteId = intent.getLongExtra("NOTE_ID", 0L)
-        val noteObject = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getSerializableExtra("NOTE_OBJECT", Note::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            intent.getSerializableExtra("NOTE_OBJECT") as? Note
-        }
+        val noteObject = intent.getSerializableExtra("NOTE_OBJECT", Note::class.java)
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channelId = "reminders"

@@ -13,6 +13,13 @@ import com.example.quicknote.data.Note
 import com.example.quicknote.data.NoteRepository
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel odpowiedzialny za dostarczanie danych dla interfejsu użytkownika
+ * oraz obsługę logiki biznesowej związanej z notatkami.
+ * Obsługuje filtrowanie, wyszukiwanie i sortowanie w czasie rzeczywistym.
+ *
+ * @param application Kontekst aplikacji.
+ */
 class NoteViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: NoteRepository
@@ -74,7 +81,7 @@ class NoteViewModel(application: Application) : AndroidViewModel(application) {
         repository.deleteNote(note)
     }
 
-    fun search(query: String): LiveData<List<Note>> {
-        return repository.searchNotes(query)
+    fun deleteAll() = viewModelScope.launch {
+        repository.deleteAllNotes()
     }
 }

@@ -4,7 +4,6 @@ import android.app.AlarmManager
 import android.app.DatePickerDialog
 import android.app.PendingIntent
 import android.app.TimePickerDialog
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
@@ -70,7 +69,7 @@ class AddEditNoteActivity : AppCompatActivity() {
             if (intent.hasExtra(EXTRA_NOTE)) {
                 currentNote = try {
                     intent.getSerializableExtra(EXTRA_NOTE) as? Note
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
                 currentNote?.let {
@@ -81,18 +80,21 @@ class AddEditNoteActivity : AppCompatActivity() {
                     switchPriority.isChecked = it.priority == 1
                     reminderTime = it.reminderTime
                     updateReminderText()
+                    invalidateOptionsMenu()
                 }
             } else {
                 title = "Nowa notatka"
             }
-        } catch (e: Exception) {
-            Toast.makeText(this, "Błąd startu: ${e.message}", Toast.LENGTH_LONG).show()
+        } catch (_: Exception) {
+            Toast.makeText(this, "Błąd startu", Toast.LENGTH_LONG).show()
             finish()
         }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_add_edit_note, menu)
+        // Pokaż przycisk udostępniania tylko w trybie edycji
+        menu.findItem(R.id.action_share)?.isVisible = currentNote != null
         return true
     }
 
@@ -100,6 +102,10 @@ class AddEditNoteActivity : AppCompatActivity() {
         return when (item.itemId) {
             R.id.action_save -> {
                 saveNote()
+                true
+            }
+            R.id.action_share -> {
+                shareNote(currentNote)
                 true
             }
             android.R.id.home -> {
@@ -189,7 +195,7 @@ class AddEditNoteActivity : AppCompatActivity() {
                 reminderTime,
                 pendingIntent
             )
-        } catch (e: SecurityException) {
+        } catch (_: SecurityException) {
             Toast.makeText(this, "Brak uprawnień do ustawienia alarmu", Toast.LENGTH_SHORT).show()
         }
     }
@@ -235,6 +241,38 @@ class AddEditNoteActivity : AppCompatActivity() {
         } else {
             textViewReminder.text = ""
         }
+    }
+
+    private fun shareNote(note: Note?) {
+        note?.let {
+            val importance = if (it.priority == 1) "Ważna" else "Zwykła"
+            val category = when (it.categoryId) {
+                1 -> "Praca"
+                2 -> "Szkoła"
+                3 -> "Dom"
+                4 -> "Inne"
+                else -> "Brak"
+            }
+
+            val shareText = """
+                Ważność: $importance
+                Kategoria: $category
+                Tytuł: "${it.title}"
+                Tekst: "${it.content}"
+            """.trimIndent()
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, it.title)
+                putExtra(Intent.EXTRA_TEXT, shareText)
+            }
+            startActivity(Intent.createChooser(shareIntent, "Udostępnij notatkę"))
+        }
+    }
+
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
     }
 
     companion object {
