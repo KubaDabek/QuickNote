@@ -43,15 +43,65 @@
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <TextView
+            android:id="@+id/textViewCategoryLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Kategoria:"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/textInputLayoutTitle" />
+
+        <Spinner
+            android:id="@+id/spinnerCategory"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            app:layout_constraintBottom_toBottomOf="@+id/textViewCategoryLabel"
+            app:layout_constraintEnd_toStartOf="@+id/switchPriority"
+            app:layout_constraintStart_toEndOf="@+id/textViewCategoryLabel"
+            app:layout_constraintTop_toTopOf="@+id/textViewCategoryLabel" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/switchPriority"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ważna"
+            app:layout_constraintBottom_toBottomOf="@+id/spinnerCategory"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/spinnerCategory" />
+
+        <Button
+            android:id="@+id/btnSetReminder"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Ustaw przypomnienie"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/textViewCategoryLabel" />
+
+        <TextView
+            android:id="@+id/textViewReminder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textColor="@color/gray"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="@+id/btnSetReminder"
+            app:layout_constraintStart_toEndOf="@+id/btnSetReminder"
+            app:layout_constraintTop_toTopOf="@+id/btnSetReminder"
+            tools:text="2024-07-07 12:00" />
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/textInputLayoutContent"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/textInputLayoutTitle">
+            app:layout_constraintTop_toBottomOf="@+id/btnSetReminder">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/editTextContent"

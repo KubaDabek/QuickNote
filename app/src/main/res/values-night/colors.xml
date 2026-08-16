@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Map white to actual white in dark mode for text -->
+    <color name="white_text">#FFFFFFFF</color>
+    <!-- Primary text color (white in dark mode) -->
+    <color name="black">#FFFFFFFF</color>
+    <!-- Background color (dark) -->
+    <color name="white">#FF121212</color>
+
+    <color name="gray">#BBBBBBBB</color>
+    <color name="light_gray">#EEEEEEEE</color>
+
+    <!-- Darker category colors for Dark Mode -->
+    <color name="cat_work">#1565C0</color>
+    <color name="cat_school">#2E7D32</color>
+    <color name="cat_home">#E65100</color>
+    <color name="cat_other">#6A1B9A</color>
+</resources>

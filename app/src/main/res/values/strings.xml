@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">QuickNote</string>
+    <string name="title_add_edit_note">Dodaj/Edytuj notatkę</string>
+    <string name="title_settings">Ustawienia</string>
+    <string name="action_search">Szukaj</string>
+    <string name="action_sort">Sortuj</string>
+    <string name="sort_date">Według daty</string>
+    <string name="sort_priority">Według priorytetu</string>
+    <string name="sort_title">Według tytułu A-Z</string>
+    <string name="empty_notes">Brak notatek</string>
+    <string name="category_label">Kategoria:</string>
+    <string name="importance_label">Ważna</string>
+    <string name="set_reminder">Ustaw przypomnienie</string>
+    <string name="theme_label">Motyw aplikacji</string>
+    <string name="clear_all">Wyczyść wszystkie notatki</string>
+    <string name="action_save">Zapisz</string>
+    <string name="action_share">Udostępnij</string>
 </resources>
