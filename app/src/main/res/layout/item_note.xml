@@ -14,6 +14,18 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
+        <ImageView
+            android:id="@+id/imageViewPriority"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="4dp"
+            android:src="@drawable/ic_priority"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@+id/textViewTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/textViewTitle"
+            tools:visibility="visible" />
+
         <TextView
             android:id="@+id/textViewTitle"
             android:layout_width="0dp"
@@ -25,7 +37,7 @@
             android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toStartOf="@+id/textViewDate"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/imageViewPriority"
             app:layout_constraintTop_toTopOf="parent"
             tools:text="Tytuł notatki" />
 

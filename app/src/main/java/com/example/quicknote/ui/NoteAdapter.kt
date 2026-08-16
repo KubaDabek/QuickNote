@@ -3,6 +3,7 @@ package com.example.quicknote.ui
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
@@ -34,6 +35,7 @@ class NoteAdapter(
         private val textViewDate: TextView = itemView.findViewById(R.id.textViewDate)
         private val textViewContent: TextView = itemView.findViewById(R.id.textViewContent)
         private val textViewCategory: TextView = itemView.findViewById(R.id.textViewCategory)
+        private val imageViewPriority: ImageView = itemView.findViewById(R.id.imageViewPriority)
         private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
 
         fun bind(
@@ -44,6 +46,14 @@ class NoteAdapter(
             textViewTitle.text = note.title
             textViewContent.text = note.content
             textViewDate.text = dateFormat.format(Date(note.createdAt))
+
+            if (note.priority == 1) {
+                imageViewPriority.visibility = View.VISIBLE
+                textViewTitle.setTextColor(ContextCompat.getColor(itemView.context, R.color.priority_orange))
+            } else {
+                imageViewPriority.visibility = View.GONE
+                textViewTitle.setTextColor(ContextCompat.getColor(itemView.context, R.color.black))
+            }
 
             if (note.categoryId != 0) {
                 textViewCategory.visibility = View.VISIBLE

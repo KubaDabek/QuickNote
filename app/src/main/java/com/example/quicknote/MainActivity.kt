@@ -1,8 +1,12 @@
 package com.example.quicknote
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
@@ -24,6 +28,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var noteViewModel: NoteViewModel
     private lateinit var adapter: NoteAdapter
+    private var currentSortId: Int = R.id.sort_date
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,9 +80,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        noteViewModel.currentSortOption.observe(this) { sortOption ->
+            currentSortId = when (sortOption) {
+                NoteViewModel.SortOption.BY_DATE -> R.id.sort_date
+                NoteViewModel.SortOption.BY_PRIORITY -> R.id.sort_priority
+                NoteViewModel.SortOption.BY_TITLE -> R.id.sort_title
+                else -> R.id.sort_date
+            }
+            invalidateOptionsMenu()
+        }
+
         fabAdd.setOnClickListener {
             val intent = Intent(this, AddEditNoteActivity::class.java)
             startActivity(intent)
+        }
+
+        requestNotificationPermission()
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
         }
     }
 
@@ -100,6 +125,29 @@ class MainActivity : AppCompatActivity() {
         })
 
         return true
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        menu.findItem(currentSortId)?.isChecked = true
+        return super.onPrepareOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.sort_date -> {
+                noteViewModel.setSortOption(NoteViewModel.SortOption.BY_DATE)
+                true
+            }
+            R.id.sort_priority -> {
+                noteViewModel.setSortOption(NoteViewModel.SortOption.BY_PRIORITY)
+                true
+            }
+            R.id.sort_title -> {
+                noteViewModel.setSortOption(NoteViewModel.SortOption.BY_TITLE)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     private fun openEditNoteScreen(note: Note) {
