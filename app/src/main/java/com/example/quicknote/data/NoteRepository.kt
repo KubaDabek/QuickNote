@@ -8,9 +8,10 @@ import kotlinx.coroutines.withContext
  * Klasa repozytorium zarządzająca dostępem do danych notatek.
  * Stanowi warstwę pośrednią między bazą danych a ViewModel.
  *
- * @property noteDao Obiekt DAO używany do komunikacji z bazą Room.
+ * @property noteDao Obiekt DAO dla notatek.
+ * @property categoryDao Obiekt DAO dla kategorii.
  */
-class NoteRepository(private val noteDao: NoteDao) {
+class NoteRepository(private val noteDao: NoteDao, private val categoryDao: CategoryDao) {
 
     fun getAllNotes(): LiveData<List<Note>> {
         return noteDao.getAllNotes()
@@ -34,13 +35,29 @@ class NoteRepository(private val noteDao: NoteDao) {
         }
     }
 
-    fun searchNotes(query: String, categoryId: Int = -1): LiveData<List<Note>> {
+    fun searchNotes(query: String, categoryId: Long = -1): LiveData<List<Note>> {
         return noteDao.searchNotes(query, categoryId)
     }
 
     suspend fun deleteAllNotes() {
         withContext(Dispatchers.IO) {
             noteDao.deleteAllNotes()
+        }
+    }
+
+    fun getAllCategories(): LiveData<List<Category>> {
+        return categoryDao.getAllCategories()
+    }
+
+    suspend fun insertCategory(category: Category): Long {
+        return withContext(Dispatchers.IO) {
+            categoryDao.insertCategory(category)
+        }
+    }
+
+    suspend fun deleteCategory(category: Category) {
+        withContext(Dispatchers.IO) {
+            categoryDao.deleteCategoryAndClearNotes(category)
         }
     }
 }

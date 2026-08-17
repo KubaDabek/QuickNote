@@ -9,6 +9,7 @@ import androidx.lifecycle.map
 import androidx.lifecycle.switchMap
 import androidx.lifecycle.viewModelScope
 import com.example.quicknote.data.AppDatabase
+import com.example.quicknote.data.Category
 import com.example.quicknote.data.Note
 import com.example.quicknote.data.NoteRepository
 import kotlinx.coroutines.launch
@@ -24,7 +25,7 @@ class NoteViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: NoteRepository
     private val _searchQuery = MutableLiveData<String>("")
-    private val _filterCategory = MutableLiveData<Int>(-1)
+    private val _filterCategory = MutableLiveData<Long>(-1L)
     private val _sortOption = MutableLiveData<SortOption>(SortOption.BY_DATE)
     val currentSortOption: LiveData<SortOption> get() = _sortOption
 
@@ -32,7 +33,7 @@ class NoteViewModel(application: Application) : AndroidViewModel(application) {
         BY_DATE, BY_PRIORITY, BY_TITLE
     }
     
-    private val combinedFilter = MediatorLiveData<Triple<String?, Int?, SortOption?>>().apply {
+    private val combinedFilter = MediatorLiveData<Triple<String?, Long?, SortOption?>>().apply {
         addSource(_searchQuery) { query -> value = Triple(query, _filterCategory.value, _sortOption.value) }
         addSource(_filterCategory) { category -> value = Triple(_searchQuery.value, category, _sortOption.value) }
         addSource(_sortOption) { sort -> value = Triple(_searchQuery.value, _filterCategory.value, sort) }
@@ -40,7 +41,7 @@ class NoteViewModel(application: Application) : AndroidViewModel(application) {
 
     val allNotes: LiveData<List<Note>> = combinedFilter.switchMap { filter ->
         val query = filter.first ?: ""
-        val category = filter.second ?: -1
+        val category = filter.second ?: -1L
         val sort = filter.third ?: SortOption.BY_DATE
         
         repository.searchNotes(query, category).map { notes ->
@@ -52,18 +53,25 @@ class NoteViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    val allCategories: LiveData<List<Category>>
+
     init {
-        val noteDao = AppDatabase.getDatabase(application).noteDao()
-        repository = NoteRepository(noteDao)
+        val database = AppDatabase.getDatabase(application)
+        val noteDao = database.noteDao()
+        val categoryDao = database.categoryDao()
+        repository = NoteRepository(noteDao, categoryDao)
+        allCategories = repository.getAllCategories()
     }
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
     }
 
-    fun setFilterCategory(categoryId: Int) {
+    fun setFilterCategory(categoryId: Long) {
         _filterCategory.value = categoryId
     }
+
+    fun getFilterCategory(): Long = _filterCategory.value ?: -1L
 
     fun setSortOption(sortOption: SortOption) {
         _sortOption.value = sortOption
@@ -83,5 +91,15 @@ class NoteViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteAll() = viewModelScope.launch {
         repository.deleteAllNotes()
+    }
+
+    fun addCategory(name: String, colorHex: String, onCategoryAdded: (Long) -> Unit = {}) = viewModelScope.launch {
+        val newCategory = Category(name = name, colorHex = colorHex)
+        val id = repository.insertCategory(newCategory)
+        onCategoryAdded(id)
+    }
+
+    fun deleteCategory(category: Category) = viewModelScope.launch {
+        repository.deleteCategory(category)
     }
 }

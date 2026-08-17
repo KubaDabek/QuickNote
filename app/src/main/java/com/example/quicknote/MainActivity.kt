@@ -19,10 +19,18 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import android.view.ViewGroup.MarginLayoutParams
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
+import com.example.quicknote.data.Category
 import com.example.quicknote.data.Note
 import com.example.quicknote.ui.NoteAdapter
 import com.example.quicknote.ui.NoteViewModel
 import com.example.quicknote.ui.NoteViewModelFactory
+import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
@@ -37,25 +45,37 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        val root: View = findViewById(R.id.main_content)
         val toolbar: Toolbar = findViewById(R.id.toolbar)
+        val appBar: View = toolbar.parent.parent as View // AppBarLayout
+        val fabAdd: FloatingActionButton = findViewById(R.id.fabAdd)
+
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            appBar.updatePadding(top = systemBars.top)
+            fabAdd.updateLayoutParams<MarginLayoutParams> {
+                bottomMargin = systemBars.bottom + 16.dpToPx()
+                rightMargin = systemBars.right + 16.dpToPx()
+            }
+            insets
+        }
+
         setSupportActionBar(toolbar)
 
         val recyclerView: RecyclerView = findViewById(R.id.recyclerView)
         val textViewEmpty: TextView = findViewById(R.id.textViewEmpty)
         val progressBar: ProgressBar = findViewById(R.id.progressBar)
-        val fabAdd: FloatingActionButton = findViewById(R.id.fabAdd)
         val chipGroupFilter: ChipGroup = findViewById(R.id.chipGroupFilter)
 
-        chipGroupFilter.setOnCheckedStateChangeListener { _, checkedIds ->
-            val checkedId = checkedIds.firstOrNull() ?: R.id.chipAll
-            val categoryId = when (checkedId) {
-                R.id.chipWork -> 1
-                R.id.chipSchool -> 2
-                R.id.chipHome -> 3
-                R.id.chipOther -> 4
-                else -> -1
+        chipGroupFilter.setOnCheckedStateChangeListener { group, checkedIds ->
+            val checkedId = checkedIds.firstOrNull() ?: -1
+            if (checkedId != -1) {
+                val chip = group.findViewById<Chip>(checkedId)
+                val categoryId = chip?.tag as? Long ?: -1L
+                noteViewModel.setFilterCategory(categoryId)
+            } else {
+                noteViewModel.setFilterCategory(-1L)
             }
-            noteViewModel.setFilterCategory(categoryId)
         }
 
         adapter = NoteAdapter(
@@ -74,6 +94,11 @@ class MainActivity : AppCompatActivity() {
 
         val factory = NoteViewModelFactory(application)
         noteViewModel = ViewModelProvider(this, factory)[NoteViewModel::class.java]
+
+        noteViewModel.allCategories.observe(this) { categories ->
+            adapter.setCategories(categories)
+            updateCategoryFilter(chipGroupFilter, categories)
+        }
 
         noteViewModel.allNotes.observe(this) { notes ->
             progressBar.visibility = View.GONE
@@ -194,17 +219,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun shareNote(note: Note) {
         val importance = if (note.priority == 1) "Ważna" else "Zwykła"
-        val category = when (note.categoryId) {
-            1 -> "Praca"
-            2 -> "Szkoła"
-            3 -> "Dom"
-            4 -> "Inne"
-            else -> "Brak"
-        }
+        // W MainActivity również należałoby pobrać nazwę kategorii z listy categories.
+        // Na razie placeholder.
+        val categoryText = "ID: ${note.categoryId}"
 
         val shareText = """
             Ważność: $importance
-            Kategoria: $category
+            Kategoria: $categoryText
             Tytuł: "${note.title}"
             Tekst: "${note.content}"
         """.trimIndent()
@@ -251,5 +272,67 @@ class MainActivity : AppCompatActivity() {
         }
         val itemTouchHelper = ItemTouchHelper(swipeHandler)
         itemTouchHelper.attachToRecyclerView(recyclerView)
+    }
+
+    private fun updateCategoryFilter(chipGroup: ChipGroup, categories: List<Category>) {
+        val selectedChipId = chipGroup.checkedChipId
+        var selectedCategoryId = -1L
+        if (selectedChipId != -1) {
+            val selectedChip = chipGroup.findViewById<Chip>(selectedChipId)
+            selectedCategoryId = selectedChip?.tag as? Long ?: -1L
+        }
+
+        chipGroup.removeAllViews()
+
+        // Dodaj chip "Wszystkie"
+        val allChip = Chip(this).apply {
+            text = "Wszystkie"
+            isCheckable = true
+            tag = -1L
+            id = View.generateViewId()
+        }
+        chipGroup.addView(allChip)
+        if (selectedCategoryId == -1L) allChip.isChecked = true
+
+        // Dodaj chipy dla kategorii
+        categories.forEach { category ->
+            val chip = Chip(this).apply {
+                text = category.name
+                isCheckable = true
+                tag = category.id
+                id = View.generateViewId()
+                
+                // Ustaw kółko z kolorem jako ikonę chipa
+                val colorIcon = ContextCompat.getDrawable(context, R.drawable.circle_shape)?.mutate()
+                colorIcon?.setTint(android.graphics.Color.parseColor(category.colorHex))
+                chipIcon = colorIcon
+                isChipIconVisible = true
+
+                setOnLongClickListener {
+                    showDeleteCategoryDialog(category)
+                    true
+                }
+            }
+            chipGroup.addView(chip)
+            if (category.id == selectedCategoryId) chip.isChecked = true
+        }
+    }
+
+    private fun showDeleteCategoryDialog(category: Category) {
+        AlertDialog.Builder(this)
+            .setTitle("Usuń kategorię")
+            .setMessage("Czy na pewno chcesz usunąć kategorię \"${category.name}\"? Wszystkie notatki z tej kategorii zostaną ustawione jako bez kategorii.")
+            .setPositiveButton("Usuń") { _, _ ->
+                if (noteViewModel.getFilterCategory() == category.id) {
+                    noteViewModel.setFilterCategory(-1L)
+                }
+                noteViewModel.deleteCategory(category)
+            }
+            .setNegativeButton("Anuluj", null)
+            .show()
+    }
+
+    private fun Int.dpToPx(): Int {
+        return (this * resources.displayMetrics.density).toInt()
     }
 }

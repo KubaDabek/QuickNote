@@ -1,6 +1,7 @@
 package com.example.quicknote
 
 import android.os.Bundle
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.Filter
@@ -9,6 +10,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.lifecycle.ViewModelProvider
 import com.example.quicknote.ui.NoteViewModel
 import com.example.quicknote.ui.NoteViewModelFactory
@@ -24,7 +28,17 @@ class SettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 
+        val root: View = findViewById(R.id.settings_content)
         val toolbar: Toolbar = findViewById(R.id.toolbar)
+        val appBar: View = toolbar.parent.parent as View // AppBarLayout
+
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            appBar.updatePadding(top = systemBars.top)
+            root.updatePadding(bottom = systemBars.bottom)
+            insets
+        }
+
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 

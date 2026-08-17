@@ -16,11 +16,21 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.RecyclerView
+import com.example.quicknote.data.Category
 import com.example.quicknote.data.Note
+import com.example.quicknote.ui.CategoryAdapter
 import com.example.quicknote.ui.NoteViewModel
 import com.example.quicknote.ui.NoteViewModelFactory
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.textfield.TextInputEditText
+import android.view.LayoutInflater
+import android.view.View
+import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -30,27 +40,38 @@ class AddEditNoteActivity : AppCompatActivity() {
 
     private lateinit var editTextTitle: TextInputEditText
     private lateinit var editTextContent: TextInputEditText
-    private lateinit var spinnerCategory: Spinner
+    private lateinit var recyclerViewCategories: RecyclerView
+    private lateinit var categoryAdapter: CategoryAdapter
     private lateinit var switchPriority: SwitchMaterial
     private lateinit var btnSetReminder: Button
     private lateinit var textViewReminder: TextView
     private lateinit var noteViewModel: NoteViewModel
     private var currentNote: Note? = null
     private var reminderTime: Long = 0
-    private val categories = arrayOf("Brak", "Praca", "Szkoła", "Dom", "Inne")
+    private var selectedCategoryId: Long = -1L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
             setContentView(R.layout.activity_add_edit_note)
 
+            val root: View = findViewById(R.id.add_edit_content)
             val toolbar: Toolbar = findViewById(R.id.toolbar)
+            val appBar: View = toolbar.parent.parent as View // AppBarLayout
+
+            ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+                val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+                appBar.updatePadding(top = systemBars.top)
+                root.updatePadding(bottom = systemBars.bottom)
+                insets
+            }
+
             setSupportActionBar(toolbar)
             supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
             editTextTitle = findViewById(R.id.editTextTitle)
             editTextContent = findViewById(R.id.editTextContent)
-            spinnerCategory = findViewById(R.id.spinnerCategory)
+            recyclerViewCategories = findViewById(R.id.recyclerViewCategories)
             switchPriority = findViewById(R.id.switchPriority)
             btnSetReminder = findViewById(R.id.btnSetReminder)
             textViewReminder = findViewById(R.id.textViewReminder)
@@ -59,12 +80,23 @@ class AddEditNoteActivity : AppCompatActivity() {
                 showDateTimePicker()
             }
 
-            val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories)
-            categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            spinnerCategory.adapter = categoryAdapter
+            categoryAdapter = CategoryAdapter(
+                onCategoryClick = { category ->
+                    selectedCategoryId = category.id
+                    categoryAdapter.setSelectedCategory(selectedCategoryId)
+                },
+                onAddCategoryClick = {
+                    showAddCategoryDialog()
+                }
+            )
+            recyclerViewCategories.adapter = categoryAdapter
 
             val factory = NoteViewModelFactory(application)
             noteViewModel = ViewModelProvider(this, factory)[NoteViewModel::class.java]
+
+            noteViewModel.allCategories.observe(this) { categories ->
+                categoryAdapter.submitList(categories)
+            }
 
             if (intent.hasExtra(EXTRA_NOTE)) {
                 currentNote = try {
@@ -76,7 +108,8 @@ class AddEditNoteActivity : AppCompatActivity() {
                     title = "Edytuj notatkę"
                     editTextTitle.setText(it.title)
                     editTextContent.setText(it.content)
-                    spinnerCategory.setSelection(it.categoryId)
+                    selectedCategoryId = it.categoryId
+                    categoryAdapter.setSelectedCategory(selectedCategoryId)
                     switchPriority.isChecked = it.priority == 1
                     reminderTime = it.reminderTime
                     updateReminderText()
@@ -89,6 +122,60 @@ class AddEditNoteActivity : AppCompatActivity() {
             Toast.makeText(this, "Błąd startu", Toast.LENGTH_LONG).show()
             finish()
         }
+    }
+
+    private fun showAddCategoryDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_category, null)
+        val editTextName = dialogView.findViewById<TextInputEditText>(R.id.editTextCategoryName)
+        var selectedColor = "#EF4444" // Domyślny
+
+        val colors = listOf(
+            dialogView.findViewById<View>(R.id.color1),
+            dialogView.findViewById<View>(R.id.color2),
+            dialogView.findViewById<View>(R.id.color3),
+            dialogView.findViewById<View>(R.id.color4),
+            dialogView.findViewById<View>(R.id.color5),
+            dialogView.findViewById<View>(R.id.color6)
+        )
+
+        colors.forEach { view ->
+            val colorHex = view.tag.toString()
+            view.background.setTint(android.graphics.Color.parseColor(colorHex))
+            
+            view.setOnClickListener {
+                selectedColor = colorHex
+                colors.forEach { v -> 
+                    v.foreground = null
+                    v.alpha = 0.7f 
+                }
+                view.foreground = ContextCompat.getDrawable(this, R.drawable.circle_selection_background)
+                view.alpha = 1.0f
+            }
+        }
+        
+        // Inicjalizacja pierwszego koloru jako zaznaczonego
+        colors[0].foreground = ContextCompat.getDrawable(this, R.drawable.circle_selection_background)
+        colors[0].alpha = 1.0f
+
+        AlertDialog.Builder(this)
+            .setTitle("Nowa kategoria")
+            .setView(dialogView)
+            .setPositiveButton("Dodaj") { _, _ ->
+                val name = editTextName.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    noteViewModel.addCategory(name, selectedColor) { newId ->
+                        runOnUiThread {
+                            selectedCategoryId = newId
+                            categoryAdapter.setSelectedCategory(selectedCategoryId)
+                            recyclerViewCategories.smoothScrollToPosition(categoryAdapter.itemCount - 2)
+                        }
+                    }
+                } else {
+                    Toast.makeText(this, "Podaj nazwę kategorii", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Anuluj", null)
+            .show()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -119,7 +206,6 @@ class AddEditNoteActivity : AppCompatActivity() {
     private fun saveNote() {
         val titleText = editTextTitle.text.toString().trim()
         val contentText = editTextContent.text.toString().trim()
-        val categoryId = spinnerCategory.selectedItemPosition
         val priority = if (switchPriority.isChecked) 1 else 0
 
         if (titleText.isEmpty()) {
@@ -131,7 +217,7 @@ class AddEditNoteActivity : AppCompatActivity() {
             Note(
                 title = titleText,
                 content = contentText,
-                categoryId = categoryId,
+                categoryId = selectedCategoryId,
                 priority = priority,
                 reminderTime = reminderTime
             )
@@ -139,7 +225,7 @@ class AddEditNoteActivity : AppCompatActivity() {
             currentNote!!.copy(
                 title = titleText,
                 content = contentText,
-                categoryId = categoryId,
+                categoryId = selectedCategoryId,
                 priority = priority,
                 reminderTime = reminderTime
             )
@@ -246,17 +332,13 @@ class AddEditNoteActivity : AppCompatActivity() {
     private fun shareNote(note: Note?) {
         note?.let {
             val importance = if (it.priority == 1) "Ważna" else "Zwykła"
-            val category = when (it.categoryId) {
-                1 -> "Praca"
-                2 -> "Szkoła"
-                3 -> "Dom"
-                4 -> "Inne"
-                else -> "Brak"
-            }
+            // Tutaj w prawdziwej aplikacji pobieralibyśmy nazwę kategorii z bazy
+            // na podstawie it.categoryId. Na potrzeby udostępniania zostawiamy ID lub placeholder.
+            val categoryIdText = if (it.categoryId == -1L) "Brak" else "ID: ${it.categoryId}"
 
             val shareText = """
                 Ważność: $importance
-                Kategoria: $category
+                Kategoria: $categoryIdText
                 Tytuł: "${it.title}"
                 Tekst: "${it.content}"
             """.trimIndent()

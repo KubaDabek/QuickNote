@@ -5,11 +5,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import android.graphics.Color
+import android.content.res.ColorStateList
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.quicknote.R
+import com.example.quicknote.data.Category
 import com.example.quicknote.data.Note
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -20,6 +23,13 @@ class NoteAdapter(
     private val onNoteLongClick: (Note) -> Unit
 ) : ListAdapter<Note, NoteAdapter.NoteViewHolder>(NoteDiffCallback()) {
 
+    private var categories: List<Category> = emptyList()
+
+    fun setCategories(categories: List<Category>) {
+        this.categories = categories
+        notifyDataSetChanged()
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NoteViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_note, parent, false)
         return NoteViewHolder(view)
@@ -27,7 +37,8 @@ class NoteAdapter(
 
     override fun onBindViewHolder(holder: NoteViewHolder, position: Int) {
         val note = getItem(position)
-        holder.bind(note, onNoteClick, onNoteLongClick)
+        val category = categories.find { it.id == note.categoryId }
+        holder.bind(note, category, onNoteClick, onNoteLongClick)
     }
 
     class NoteViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -40,6 +51,7 @@ class NoteAdapter(
 
         fun bind(
             note: Note,
+            category: Category?,
             onNoteClick: (Note) -> Unit,
             onNoteLongClick: (Note) -> Unit
         ) {
@@ -55,16 +67,15 @@ class NoteAdapter(
                 textViewTitle.setTextColor(ContextCompat.getColor(itemView.context, R.color.black))
             }
 
-            if (note.categoryId != 0) {
+            if (category != null) {
                 textViewCategory.visibility = View.VISIBLE
-                val (catName, catColor) = when (note.categoryId) {
-                    1 -> "PRACA" to R.color.cat_work
-                    2 -> "SZKOŁA" to R.color.cat_school
-                    3 -> "DOM" to R.color.cat_home
-                    else -> "INNE" to R.color.cat_other
+                textViewCategory.text = category.name
+                try {
+                    val color = Color.parseColor(category.colorHex)
+                    textViewCategory.backgroundTintList = ColorStateList.valueOf(color)
+                } catch (e: Exception) {
+                    textViewCategory.backgroundTintList = ColorStateList.valueOf(Color.GRAY)
                 }
-                textViewCategory.text = catName
-                textViewCategory.backgroundTintList = ContextCompat.getColorStateList(itemView.context, catColor)
             } else {
                 textViewCategory.visibility = View.GONE
             }
