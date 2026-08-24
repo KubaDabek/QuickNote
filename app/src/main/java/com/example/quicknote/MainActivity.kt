@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var noteViewModel: NoteViewModel
     private lateinit var adapter: NoteAdapter
+    private var categoriesList: List<Category> = emptyList()
     private var currentSortId: Int = R.id.sort_date
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,6 +97,7 @@ class MainActivity : AppCompatActivity() {
         noteViewModel = ViewModelProvider(this, factory)[NoteViewModel::class.java]
 
         noteViewModel.allCategories.observe(this) { categories ->
+            categoriesList = categories
             adapter.setCategories(categories)
             updateCategoryFilter(chipGroupFilter, categories)
         }
@@ -219,9 +221,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun shareNote(note: Note) {
         val importance = if (note.priority == 1) "Ważna" else "Zwykła"
-        // W MainActivity również należałoby pobrać nazwę kategorii z listy categories.
-        // Na razie placeholder.
-        val categoryText = "ID: ${note.categoryId}"
+        val categoryText = categoriesList.find { it.id == note.categoryId }?.name ?: "Brak"
 
         val shareText = """
             Ważność: $importance
@@ -265,7 +265,11 @@ class MainActivity : AppCompatActivity() {
 
                 Snackbar.make(recyclerView, "Usunięto notatkę", Snackbar.LENGTH_LONG)
                     .setAction("Cofnij") {
-                        noteViewModel.insert(noteToDelete)
+                        noteViewModel.insert(noteToDelete) { newId ->
+                            if (noteToDelete.reminderTime > System.currentTimeMillis()) {
+                                AlarmHelper.scheduleAlarm(this@MainActivity, noteToDelete.copy(id = newId))
+                            }
+                        }
                     }
                     .show()
             }
