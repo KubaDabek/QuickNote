@@ -8,6 +8,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.map
 import androidx.lifecycle.switchMap
 import androidx.lifecycle.viewModelScope
+import com.example.quicknote.AlarmHelper
 import com.example.quicknote.data.AppDatabase
 import com.example.quicknote.data.Category
 import com.example.quicknote.data.Note
@@ -77,8 +78,9 @@ class NoteViewModel(application: Application) : AndroidViewModel(application) {
         _sortOption.value = sortOption
     }
 
-    fun insert(note: Note) = viewModelScope.launch {
-        repository.insertNote(note)
+    fun insert(note: Note, onResult: (Long) -> Unit = {}) = viewModelScope.launch {
+        val id = repository.insertNote(note)
+        onResult(id)
     }
 
     fun update(note: Note) = viewModelScope.launch {
@@ -86,6 +88,7 @@ class NoteViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun delete(note: Note) = viewModelScope.launch {
+        AlarmHelper.cancelAlarm(getApplication<Application>().applicationContext, note.id)
         repository.deleteNote(note)
     }
 

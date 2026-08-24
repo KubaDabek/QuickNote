@@ -48,7 +48,8 @@ class AddEditNoteActivity : AppCompatActivity() {
     private lateinit var noteViewModel: NoteViewModel
     private var currentNote: Note? = null
     private var reminderTime: Long = 0
-    private var selectedCategoryId: Long = -1L
+    private var selectedCategoryId: Long = 0L
+    private var categoriesList: List<Category> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,7 +83,11 @@ class AddEditNoteActivity : AppCompatActivity() {
 
             categoryAdapter = CategoryAdapter(
                 onCategoryClick = { category ->
-                    selectedCategoryId = category.id
+                    if (selectedCategoryId == category.id) {
+                        selectedCategoryId = 0L // Odznaczanie
+                    } else {
+                        selectedCategoryId = category.id
+                    }
                     categoryAdapter.setSelectedCategory(selectedCategoryId)
                 },
                 onAddCategoryClick = {
@@ -95,6 +100,7 @@ class AddEditNoteActivity : AppCompatActivity() {
             noteViewModel = ViewModelProvider(this, factory)[NoteViewModel::class.java]
 
             noteViewModel.allCategories.observe(this) { categories ->
+                categoriesList = categories
                 categoryAdapter.submitList(categories)
             }
 
@@ -232,58 +238,22 @@ class AddEditNoteActivity : AppCompatActivity() {
         }
 
         if (currentNote == null) {
-            noteViewModel.insert(note)
-            // Uwaga: W przypadku nowej notatki ID jest generowane przez Room.
-            // Aby ustawić alarm z poprawnym ID dla nowej notatki, w prawdziwej aplikacji
-            // należałoby poczekać na wynik inserta lub użyć innego identyfikatora.
-            // Zgodnie z poleceniem planujemy alarm tutaj.
-            if (reminderTime > System.currentTimeMillis()) {
-                scheduleAlarm(note)
+            noteViewModel.insert(note) { newId ->
+                if (reminderTime > System.currentTimeMillis()) {
+                    val noteWithId = note.copy(id = newId)
+                    AlarmHelper.scheduleAlarm(this, noteWithId)
+                }
             }
         } else {
             noteViewModel.update(note)
             if (reminderTime > System.currentTimeMillis()) {
-                scheduleAlarm(note)
+                AlarmHelper.scheduleAlarm(this, note)
+            } else {
+                AlarmHelper.cancelAlarm(this, note.id)
             }
         }
 
         finish()
-    }
-
-    private fun scheduleAlarm(note: Note) {
-        val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
-        
-        // Sprawdzenie uprawnienia dla dokładnych alarmów na nowszych systemach
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
-                val intent = Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                startActivity(intent)
-                return
-            }
-        }
-
-        val intent = Intent(this, ReminderReceiver::class.java).apply {
-            putExtra("NOTE_ID", note.id)
-            putExtra("NOTE_TITLE", note.title)
-            putExtra("NOTE_OBJECT", note)
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            this,
-            note.id.toInt(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        try {
-            alarmManager.setExact(
-                AlarmManager.RTC_WAKEUP,
-                reminderTime,
-                pendingIntent
-            )
-        } catch (_: SecurityException) {
-            Toast.makeText(this, "Brak uprawnień do ustawienia alarmu", Toast.LENGTH_SHORT).show()
-        }
     }
 
     private fun showDateTimePicker() {
@@ -332,13 +302,11 @@ class AddEditNoteActivity : AppCompatActivity() {
     private fun shareNote(note: Note?) {
         note?.let {
             val importance = if (it.priority == 1) "Ważna" else "Zwykła"
-            // Tutaj w prawdziwej aplikacji pobieralibyśmy nazwę kategorii z bazy
-            // na podstawie it.categoryId. Na potrzeby udostępniania zostawiamy ID lub placeholder.
-            val categoryIdText = if (it.categoryId == -1L) "Brak" else "ID: ${it.categoryId}"
+            val category = categoriesList.find { cat -> cat.id == it.categoryId }?.name ?: "Brak"
 
             val shareText = """
                 Ważność: $importance
-                Kategoria: $categoryIdText
+                Kategoria: $category
                 Tytuł: "${it.title}"
                 Tekst: "${it.content}"
             """.trimIndent()

@@ -25,7 +25,11 @@ class ReminderReceiver : BroadcastReceiver() {
                 channelId,
                 "Przypomnienia",
                 NotificationManager.IMPORTANCE_HIGH
-            )
+            ).apply {
+                description = "Kanał dla powiadomień o notatkach"
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 500, 200, 500)
+            }
             notificationManager.createNotificationChannel(channel)
         }
 
@@ -47,8 +51,11 @@ class ReminderReceiver : BroadcastReceiver() {
             .setContentTitle("QuickNote")
             .setContentText(noteTitle)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setVibrate(longArrayOf(0, 500, 200, 500))
             .setAutoCancel(true)
-            .setContentIntent(pendingIntent) // Dodajemy akcję kliknięcia
+            .setContentIntent(pendingIntent)
             .build()
 
         notificationManager.notify(noteId.toInt(), notification)

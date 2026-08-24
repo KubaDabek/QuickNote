@@ -17,8 +17,8 @@ class NoteRepository(private val noteDao: NoteDao, private val categoryDao: Cate
         return noteDao.getAllNotes()
     }
 
-    suspend fun insertNote(note: Note) {
-        withContext(Dispatchers.IO) {
+    suspend fun insertNote(note: Note): Long {
+        return withContext(Dispatchers.IO) {
             noteDao.insertNote(note)
         }
     }

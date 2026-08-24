@@ -18,7 +18,7 @@ interface NoteDao {
     fun getAllNotes(): LiveData<List<Note>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertNote(note: Note)
+    suspend fun insertNote(note: Note): Long
 
     @Update
     suspend fun updateNote(note: Note)
@@ -26,9 +26,12 @@ interface NoteDao {
     @Delete
     suspend fun deleteNote(note: Note)
 
-    @Query("SELECT * FROM notes WHERE (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') AND (:categoryId = -1 OR categoryId = :categoryId) ORDER BY createdAt DESC")
+    @Query("SELECT * FROM notes WHERE (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') AND (:categoryId = -1 OR categoryId = :categoryId OR ((SELECT name FROM categories WHERE id = :categoryId) = 'Inne' AND categoryId <= 0)) ORDER BY createdAt DESC")
     fun searchNotes(query: String, categoryId: Long = -1): LiveData<List<Note>>
 
     @Query("DELETE FROM notes")
     suspend fun deleteAllNotes()
+
+    @Query("SELECT * FROM notes WHERE reminderTime > :currentTime")
+    suspend fun getFutureReminders(currentTime: Long): List<Note>
 }
