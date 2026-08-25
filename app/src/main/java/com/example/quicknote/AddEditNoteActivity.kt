@@ -1,6 +1,5 @@
 package com.example.quicknote
 
-import android.app.AlarmManager
 import android.app.DatePickerDialog
 import android.app.PendingIntent
 import android.app.TimePickerDialog
@@ -36,6 +35,10 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Aktywność umożliwiająca tworzenie nowej notatki lub edycję istniejącej.
+ * Pozwala na wybór kategorii, ustawienie priorytetu oraz zaplanowanie przypomnienia.
+ */
 class AddEditNoteActivity : AppCompatActivity() {
 
     private lateinit var editTextTitle: TextInputEditText
@@ -46,9 +49,13 @@ class AddEditNoteActivity : AppCompatActivity() {
     private lateinit var btnSetReminder: Button
     private lateinit var textViewReminder: TextView
     private lateinit var noteViewModel: NoteViewModel
+    /** Przechowuje obiekt notatki w trybie edycji (null dla nowej notatki). */
     private var currentNote: Note? = null
+    /** Wybrany czas przypomnienia w milisekundach. */
     private var reminderTime: Long = 0
+    /** ID aktualnie zaznaczonej kategorii (0L = brak). */
     private var selectedCategoryId: Long = 0L
+    /** Lista wszystkich kategorii pobrana z ViewModela. */
     private var categoriesList: List<Category> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,6 +67,7 @@ class AddEditNoteActivity : AppCompatActivity() {
             val toolbar: Toolbar = findViewById(R.id.toolbar)
             val appBar: View = toolbar.parent.parent as View // AppBarLayout
 
+            // Dopasowanie układu do pasków systemowych (Toolbar na górze, treść nad paskiem nawigacji)
             ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
                 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
                 appBar.updatePadding(top = systemBars.top)
@@ -77,14 +85,16 @@ class AddEditNoteActivity : AppCompatActivity() {
             btnSetReminder = findViewById(R.id.btnSetReminder)
             textViewReminder = findViewById(R.id.textViewReminder)
 
+            // Kliknięcie otwiera kaskadowo wybór daty i godziny
             btnSetReminder.setOnClickListener {
                 showDateTimePicker()
             }
 
+            // Inicjalizacja listy kategorii (chipów) do wyboru
             categoryAdapter = CategoryAdapter(
                 onCategoryClick = { category ->
                     if (selectedCategoryId == category.id) {
-                        selectedCategoryId = 0L // Odznaczanie
+                        selectedCategoryId = 0L // Ponowne kliknięcie odznacza kategorię
                     } else {
                         selectedCategoryId = category.id
                     }
@@ -104,6 +114,7 @@ class AddEditNoteActivity : AppCompatActivity() {
                 categoryAdapter.submitList(categories)
             }
 
+            // Sprawdzenie czy aktywność uruchomiona w trybie edycji (przekazano EXTRA_NOTE)
             if (intent.hasExtra(EXTRA_NOTE)) {
                 currentNote = try {
                     intent.getSerializableExtra(EXTRA_NOTE) as? Note
@@ -130,10 +141,11 @@ class AddEditNoteActivity : AppCompatActivity() {
         }
     }
 
+    /** Wyświetla dialog do tworzenia nowej kategorii z wyborem koloru. */
     private fun showAddCategoryDialog() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_category, null)
         val editTextName = dialogView.findViewById<TextInputEditText>(R.id.editTextCategoryName)
-        var selectedColor = "#EF4444" // Domyślny
+        var selectedColor = "#EF4444" // Czerwony jako domyślny
 
         val colors = listOf(
             dialogView.findViewById<View>(R.id.color1),
@@ -159,34 +171,41 @@ class AddEditNoteActivity : AppCompatActivity() {
             }
         }
         
-        // Inicjalizacja pierwszego koloru jako zaznaczonego
         colors[0].foreground = ContextCompat.getDrawable(this, R.drawable.circle_selection_background)
         colors[0].alpha = 1.0f
 
         AlertDialog.Builder(this)
             .setTitle("Nowa kategoria")
             .setView(dialogView)
-            .setPositiveButton("Dodaj") { _, _ ->
-                val name = editTextName.text.toString().trim()
-                if (name.isNotEmpty()) {
-                    noteViewModel.addCategory(name, selectedColor) { newId ->
-                        runOnUiThread {
-                            selectedCategoryId = newId
-                            categoryAdapter.setSelectedCategory(selectedCategoryId)
-                            recyclerViewCategories.smoothScrollToPosition(categoryAdapter.itemCount - 2)
+            .setPositiveButton("Dodaj", null) // Ustawiamy null, aby obsłużyć kliknięcie ręcznie
+            .setNegativeButton("Anuluj", null)
+            .create()
+            .apply {
+                show()
+                // Nadpisujemy działanie przycisku "Dodaj", aby dialog nie zamykał się automatycznie
+                getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    val name = editTextName.text.toString().trim()
+                    if (name.isNotEmpty()) {
+                        noteViewModel.addCategory(name, selectedColor) { newId ->
+                            runOnUiThread {
+                                selectedCategoryId = newId
+                                categoryAdapter.setSelectedCategory(selectedCategoryId)
+                                val targetPos = categoryAdapter.itemCount - 2
+                                if (targetPos >= 0) {
+                                    recyclerViewCategories.smoothScrollToPosition(targetPos)
+                                }
+                            }
                         }
+                        dismiss() // Zamykamy tylko dialog, aktywność zostaje
+                    } else {
+                        Toast.makeText(this@AddEditNoteActivity, "Podaj nazwę kategorii", Toast.LENGTH_SHORT).show()
                     }
-                } else {
-                    Toast.makeText(this, "Podaj nazwę kategorii", Toast.LENGTH_SHORT).show()
                 }
             }
-            .setNegativeButton("Anuluj", null)
-            .show()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_add_edit_note, menu)
-        // Pokaż przycisk udostępniania tylko w trybie edycji
         menu.findItem(R.id.action_share)?.isVisible = currentNote != null
         return true
     }
@@ -209,6 +228,7 @@ class AddEditNoteActivity : AppCompatActivity() {
         }
     }
 
+    /** Waliduje i zapisuje notatkę w bazie oraz planuje alarm systemowy. */
     private fun saveNote() {
         val titleText = editTextTitle.text.toString().trim()
         val contentText = editTextContent.text.toString().trim()
@@ -256,6 +276,7 @@ class AddEditNoteActivity : AppCompatActivity() {
         finish()
     }
 
+    /** Wyświetla selektor daty, a następnie godziny dla przypomnienia. */
     private fun showDateTimePicker() {
         val currentCalendar = Calendar.getInstance()
         if (reminderTime > 0) {
@@ -290,6 +311,7 @@ class AddEditNoteActivity : AppCompatActivity() {
         ).show()
     }
 
+    /** Aktualizuje etykietę tekstową z wybraną datą przypomnienia. */
     private fun updateReminderText() {
         if (reminderTime > 0) {
             val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
@@ -299,6 +321,7 @@ class AddEditNoteActivity : AppCompatActivity() {
         }
     }
 
+    /** Funkcja pomocnicza do udostępniania treści notatki. */
     private fun shareNote(note: Note?) {
         note?.let {
             val importance = if (it.priority == 1) "Ważna" else "Zwykła"
@@ -322,6 +345,7 @@ class AddEditNoteActivity : AppCompatActivity() {
 
     override fun finish() {
         super.finish()
+        // Animacja powrotu w prawo
         overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
     }
 

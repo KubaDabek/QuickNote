@@ -12,6 +12,10 @@ import com.example.quicknote.R
 import com.example.quicknote.data.Category
 import com.google.android.material.card.MaterialCardView
 
+/**
+ * Adapter wyświetlający poziomy pasek kategorii w oknie dodawania notatki.
+ * Obsługuje zaznaczanie kategorii oraz posiada specjalny przycisk "+" do dodawania nowych.
+ */
 class CategoryAdapter(
     private val onCategoryClick: (Category) -> Unit,
     private val onAddCategoryClick: () -> Unit
@@ -21,10 +25,10 @@ class CategoryAdapter(
     private val TYPE_CATEGORY = 0
     private val TYPE_ADD = 1
 
+    /** Wizualnie zaznacza wybraną kategorię na liście. */
     fun setSelectedCategory(id: Long) {
-        val oldSelectedId = selectedCategoryId
         selectedCategoryId = id
-        notifyDataSetChanged() // W tym przypadku notifyDataSetChanged jest akceptowalne dla małej listy chipów
+        notifyDataSetChanged()
     }
 
     override fun getItemViewType(position: Int): Int {

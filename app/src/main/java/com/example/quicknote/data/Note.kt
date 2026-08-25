@@ -19,10 +19,16 @@ import java.io.Serializable
 data class Note(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    /** Tytuł wpisany przez użytkownika. */
     val title: String,
+    /** Treść notatki. */
     val content: String,
+    /** ID kategorii z tabeli 'categories' (0 = brak). */
     val categoryId: Long = 0,
+    /** Priorytet: 0 (zwykła) lub 1 (ważna). */
     val priority: Int = 0,
+    /** Data utworzenia w milisekundach. */
     val createdAt: Long = System.currentTimeMillis(),
+    /** Czas przypomnienia w milisekundach (0 = brak). */
     val reminderTime: Long = 0
 ) : Serializable

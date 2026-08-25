@@ -18,6 +18,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Adapter dla RecyclerView wyświetlający listę notatek na ekranie głównym.
+ * Obsługuje dynamiczne wiązanie danych, kolory kategorii i ikony priorytetu.
+ */
 class NoteAdapter(
     private val onNoteClick: (Note) -> Unit,
     private val onNoteLongClick: (Note) -> Unit
@@ -25,6 +29,7 @@ class NoteAdapter(
 
     private var categories: List<Category> = emptyList()
 
+    /** Aktualizuje wewnętrzną listę kategorii dla poprawnego wyświetlania nazw w notatkach. */
     fun setCategories(categories: List<Category>) {
         this.categories = categories
         notifyDataSetChanged()

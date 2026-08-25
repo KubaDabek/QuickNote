@@ -19,6 +19,10 @@ import com.example.quicknote.ui.NoteViewModelFactory
 import com.example.quicknote.ui.ThemeHelper
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 
+/**
+ * Ekran ustawień aplikacji.
+ * Umożliwia zmianę motywu, wyczyszczenie wszystkich danych oraz sprawdzenie wersji.
+ */
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var noteViewModel: NoteViewModel
@@ -26,72 +30,79 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_settings)
+        try {
+            setContentView(R.layout.activity_settings)
 
-        val root: View = findViewById(R.id.settings_content)
-        val toolbar: Toolbar = findViewById(R.id.toolbar)
-        val appBar: View = toolbar.parent.parent as View // AppBarLayout
+            val root: View = findViewById(R.id.settings_content)
+            val toolbar: Toolbar = findViewById(R.id.toolbar)
+            val appBar: View = toolbar.parent.parent as View // AppBarLayout
 
-        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            appBar.updatePadding(top = systemBars.top)
-            root.updatePadding(bottom = systemBars.bottom)
-            insets
-        }
+            // Dopasowanie do pasków systemowych (Edge-to-Edge)
+            ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+                val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+                appBar.updatePadding(top = systemBars.top)
+                root.updatePadding(bottom = systemBars.bottom)
+                insets
+            }
 
-        setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            setSupportActionBar(toolbar)
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        val autoCompleteTheme: MaterialAutoCompleteTextView = findViewById(R.id.autoCompleteTheme)
-        val btnClearAll: Button = findViewById(R.id.btnClearAll)
-        val textViewVersion: TextView = findViewById(R.id.textViewVersion)
+            val autoCompleteTheme: MaterialAutoCompleteTextView = findViewById(R.id.autoCompleteTheme)
+            val btnClearAll: Button = findViewById(R.id.btnClearAll)
+            val textViewVersion: TextView = findViewById(R.id.textViewVersion)
 
-        val factory = NoteViewModelFactory(application)
-        noteViewModel = ViewModelProvider(this, factory)[NoteViewModel::class.java]
+            val factory = NoteViewModelFactory(application)
+            noteViewModel = ViewModelProvider(this, factory)[NoteViewModel::class.java]
 
-        // Niestandardowy adapter wyłączający filtrowanie, aby lista była zawsze pełna
-        val themeAdapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, themeOptions) {
-            override fun getFilter(): Filter {
-                return object : Filter() {
-                    override fun performFiltering(constraint: CharSequence?): FilterResults {
-                        val results = FilterResults()
-                        results.values = themeOptions
-                        results.count = themeOptions.size
-                        return results
-                    }
-                    override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
-                        notifyDataSetChanged()
+            // Konfiguracja dropdowna motywu z wyłączonym filtrowaniem dla stabilności
+            val themeAdapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, themeOptions) {
+                override fun getFilter(): Filter {
+                    return object : Filter() {
+                        override fun performFiltering(constraint: CharSequence?): FilterResults {
+                            val results = FilterResults()
+                            results.values = themeOptions
+                            results.count = themeOptions.size
+                            return results
+                        }
+                        override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
+                            notifyDataSetChanged()
+                        }
                     }
                 }
             }
-        }
-        autoCompleteTheme.setAdapter(themeAdapter)
+            autoCompleteTheme.setAdapter(themeAdapter)
 
-        val currentTheme = ThemeHelper.getThemePreference(this)
-        autoCompleteTheme.setText(themeOptions[currentTheme], false)
+            val currentTheme = ThemeHelper.getThemePreference(this)
+            autoCompleteTheme.setText(themeOptions[currentTheme], false)
 
-        autoCompleteTheme.setOnItemClickListener { _, _, position, _ ->
-            // Natychmiast zamykamy listę i zabieramy fokus
-            autoCompleteTheme.dismissDropDown()
-            autoCompleteTheme.clearFocus()
-            
-            ThemeHelper.saveThemePreference(this, position)
-            ThemeHelper.applyTheme(position)
-        }
+            // Reagowanie na wybór nowego motywu
+            autoCompleteTheme.setOnItemClickListener { _, _, position, _ ->
+                autoCompleteTheme.dismissDropDown()
+                autoCompleteTheme.clearFocus()
+                
+                ThemeHelper.saveThemePreference(this, position)
+                ThemeHelper.applyTheme(position)
+            }
 
-        btnClearAll.setOnClickListener {
-            showClearAllDialog()
-        }
+            btnClearAll.setOnClickListener {
+                showClearAllDialog()
+            }
 
-        val versionName = try {
-            val pInfo = packageManager.getPackageInfo(packageName, 0)
-            pInfo.versionName
+            // Odczyt wersji aplikacji z menedżera pakietów
+            val versionName = try {
+                val pInfo = packageManager.getPackageInfo(packageName, 0)
+                pInfo.versionName
+            } catch (_: Exception) {
+                "1.0"
+            }
+            textViewVersion.text = "Wersja $versionName"
         } catch (_: Exception) {
-            "1.0"
+            finish()
         }
-        textViewVersion.text = "Wersja $versionName"
     }
 
+    /** Wyświetla ostrzeżenie przed nieodwracalnym usunięciem wszystkich notatek. */
     private fun showClearAllDialog() {
         AlertDialog.Builder(this)
             .setTitle("Wyczyść wszystko")
@@ -106,6 +117,7 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun finish() {
         super.finish()
+        // Animacja powrotu
         overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
     }
 

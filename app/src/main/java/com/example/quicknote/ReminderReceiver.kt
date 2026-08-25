@@ -10,6 +10,10 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.example.quicknote.data.Note
 
+/**
+ * Odbiorca sygnału z AlarmManager. Odpowiada za wyświetlenie powiadomienia
+ * użytkownikowi w zaplanowanym czasie.
+ */
 class ReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -20,6 +24,7 @@ class ReminderReceiver : BroadcastReceiver() {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channelId = "reminders"
 
+        // Konfiguracja kanału powiadomień (wymagane od Androida 8.0)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
@@ -33,7 +38,7 @@ class ReminderReceiver : BroadcastReceiver() {
             notificationManager.createNotificationChannel(channel)
         }
 
-        // Tworzymy Intent, który otworzy notatkę do edycji
+        // Akcja po kliknięciu w powiadomienie - otwarcie notatki do edycji
         val activityIntent = Intent(context, AddEditNoteActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(AddEditNoteActivity.EXTRA_NOTE, noteObject)
@@ -46,6 +51,7 @@ class ReminderReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Budowanie powiadomienia z wysokim priorytetem i dźwiękiem
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("QuickNote")
@@ -58,6 +64,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .setContentIntent(pendingIntent)
             .build()
 
+        // Wyświetlenie powiadomienia (używamy noteId, aby każde było unikalne)
         notificationManager.notify(noteId.toInt(), notification)
     }
 }

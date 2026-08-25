@@ -35,11 +35,17 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 
+/**
+ * Główna aktywność aplikacji wyświetlająca listę notatek.
+ * Obsługuje filtrowanie po kategoriach, wyszukiwanie, sortowanie oraz gesty usuwania.
+ */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var noteViewModel: NoteViewModel
     private lateinit var adapter: NoteAdapter
+    /** Lokalna kopia listy kategorii używana m.in. do udostępniania notatek. */
     private var categoriesList: List<Category> = emptyList()
+    /** ID aktualnie wybranej opcji sortowania w menu. */
     private var currentSortId: Int = R.id.sort_date
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,6 +57,7 @@ class MainActivity : AppCompatActivity() {
         val appBar: View = toolbar.parent.parent as View // AppBarLayout
         val fabAdd: FloatingActionButton = findViewById(R.id.fabAdd)
 
+        // Obsługa wcięć systemowych (Edge-to-Edge) dla Toolbar i FAB
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             appBar.updatePadding(top = systemBars.top)
@@ -68,6 +75,7 @@ class MainActivity : AppCompatActivity() {
         val progressBar: ProgressBar = findViewById(R.id.progressBar)
         val chipGroupFilter: ChipGroup = findViewById(R.id.chipGroupFilter)
 
+        // Reagowanie na wybór chipa kategorii - aktualizacja filtra w ViewModel
         chipGroupFilter.setOnCheckedStateChangeListener { group, checkedIds ->
             val checkedId = checkedIds.firstOrNull() ?: -1
             if (checkedId != -1) {
@@ -79,6 +87,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Konfiguracja adaptera listy notatek z callbackami dla kliknięć
         adapter = NoteAdapter(
             onNoteClick = { note ->
                 openEditNoteScreen(note)
@@ -91,17 +100,20 @@ class MainActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
+        // Włączenie gestu przesunięcia w lewo do usuwania
         setupSwipeToDelete(recyclerView)
 
         val factory = NoteViewModelFactory(application)
         noteViewModel = ViewModelProvider(this, factory)[NoteViewModel::class.java]
 
+        // Obserwowanie kategorii w celu odświeżenia chipów filtrujących
         noteViewModel.allCategories.observe(this) { categories ->
             categoriesList = categories
             adapter.setCategories(categories)
             updateCategoryFilter(chipGroupFilter, categories)
         }
 
+        // Obserwowanie notatek - aktualizacja listy i stanu "brak danych"
         noteViewModel.allNotes.observe(this) { notes ->
             progressBar.visibility = View.GONE
             adapter.submitList(notes)
@@ -114,25 +126,28 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Obserwowanie opcji sortowania w celu synchronizacji ikon w menu
         noteViewModel.currentSortOption.observe(this) { sortOption ->
             currentSortId = when (sortOption) {
                 NoteViewModel.SortOption.BY_DATE -> R.id.sort_date
                 NoteViewModel.SortOption.BY_PRIORITY -> R.id.sort_priority
                 NoteViewModel.SortOption.BY_TITLE -> R.id.sort_title
-                else -> R.id.sort_date
             }
             invalidateOptionsMenu()
         }
 
+        // Przycisk FAB otwiera ekran tworzenia nowej notatki z animacją
         fabAdd.setOnClickListener {
             val intent = Intent(this, AddEditNoteActivity::class.java)
             startActivity(intent)
             overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
         }
 
+        // Prośba o uprawnienia do powiadomień na nowszych systemach
         requestNotificationPermission()
     }
 
+    /** Wyświetla systemowe zapytanie o zgodę na wysyłanie powiadomień. */
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -146,6 +161,7 @@ class MainActivity : AppCompatActivity() {
         val searchItem = menu.findItem(R.id.action_search)
         val searchView = searchItem.actionView as SearchView
 
+        // Obsługa wyszukiwania w czasie rzeczywistym
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
@@ -163,7 +179,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        // Znajdź sub-menu sortowania i zaznacz odpowiednią opcję "ptaszkiem"
+        // Zaznaczenie aktualnie wybranego trybu sortowania "ptaszkiem"
         val sortItem = menu.findItem(R.id.action_sort)
         sortItem?.subMenu?.let { subMenu ->
             for (i in 0 until subMenu.size()) {
@@ -198,6 +214,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Przejście do ekranu edycji wybranej notatki. */
     private fun openEditNoteScreen(note: Note) {
         val intent = Intent(this, AddEditNoteActivity::class.java)
         intent.putExtra(AddEditNoteActivity.EXTRA_NOTE, note)
@@ -205,6 +222,7 @@ class MainActivity : AppCompatActivity() {
         overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
     }
 
+    /** Pokazuje menu opcji (Edytuj/Udostępnij/Usuń) po długim kliknięciu. */
     private fun showOptionsDialog(note: Note) {
         val options = arrayOf("Edytuj", "Udostępnij", "Usuń")
         AlertDialog.Builder(this)
@@ -219,6 +237,7 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /** Formatuje i wysyła treść notatki do innych aplikacji. */
     private fun shareNote(note: Note) {
         val importance = if (note.priority == 1) "Ważna" else "Zwykła"
         val categoryText = categoriesList.find { it.id == note.categoryId }?.name ?: "Brak"
@@ -238,6 +257,7 @@ class MainActivity : AppCompatActivity() {
         startActivity(Intent.createChooser(shareIntent, "Udostępnij notatkę"))
     }
 
+    /** Wyświetla potwierdzenie przed trwałym usunięciem notatki. */
     private fun showDeleteConfirmationDialog(note: Note) {
         AlertDialog.Builder(this)
             .setTitle("Usuń notatkę")
@@ -249,6 +269,7 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /** Inicjalizuje mechanizm swipe-to-delete z możliwością cofnięcia operacji. */
     private fun setupSwipeToDelete(recyclerView: RecyclerView) {
         val swipeHandler = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
             override fun onMove(
@@ -278,6 +299,7 @@ class MainActivity : AppCompatActivity() {
         itemTouchHelper.attachToRecyclerView(recyclerView)
     }
 
+    /** Aktualizuje listę chipów filtrujących kategorie w nagłówku. */
     private fun updateCategoryFilter(chipGroup: ChipGroup, categories: List<Category>) {
         val selectedChipId = chipGroup.checkedChipId
         var selectedCategoryId = -1L
@@ -288,7 +310,7 @@ class MainActivity : AppCompatActivity() {
 
         chipGroup.removeAllViews()
 
-        // Dodaj chip "Wszystkie"
+        // Dodaj stały chip "Wszystkie"
         val allChip = Chip(this).apply {
             text = "Wszystkie"
             isCheckable = true
@@ -298,7 +320,7 @@ class MainActivity : AppCompatActivity() {
         chipGroup.addView(allChip)
         if (selectedCategoryId == -1L) allChip.isChecked = true
 
-        // Dodaj chipy dla kategorii
+        // Dynamicznie dodaj chipy dla kategorii z bazy danych
         categories.forEach { category ->
             val chip = Chip(this).apply {
                 text = category.name
@@ -306,12 +328,12 @@ class MainActivity : AppCompatActivity() {
                 tag = category.id
                 id = View.generateViewId()
                 
-                // Ustaw kółko z kolorem jako ikonę chipa
                 val colorIcon = ContextCompat.getDrawable(context, R.drawable.circle_shape)?.mutate()
                 colorIcon?.setTint(android.graphics.Color.parseColor(category.colorHex))
                 chipIcon = colorIcon
                 isChipIconVisible = true
 
+                // Długie kliknięcie na chipie pozwala usunąć kategorię
                 setOnLongClickListener {
                     showDeleteCategoryDialog(category)
                     true
@@ -322,6 +344,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Wyświetla dialog potwierdzający usunięcie kategorii. */
     private fun showDeleteCategoryDialog(category: Category) {
         AlertDialog.Builder(this)
             .setTitle("Usuń kategorię")
@@ -336,6 +359,7 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /** Pomocnicza funkcja do konwersji DP na piksele. */
     private fun Int.dpToPx(): Int {
         return (this * resources.displayMetrics.density).toInt()
     }

@@ -8,12 +8,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+/**
+ * Odbiorca systemowy nasłuchujący zdarzenia BOOT_COMPLETED.
+ * Odpowiada za ponowne zaplanowanie wszystkich alarmów po restarcie telefonu.
+ */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             val db = AppDatabase.getDatabase(context)
             val noteDao = db.noteDao()
             
+            // Pobranie notatek z przyszłymi przypomnieniami i przywrócenie alarmów
             CoroutineScope(Dispatchers.IO).launch {
                 val currentTime = System.currentTimeMillis()
                 val futureNotes = noteDao.getFutureReminders(currentTime)

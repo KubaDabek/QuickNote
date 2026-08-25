@@ -2,22 +2,22 @@ package com.example.quicknote
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
-
 import org.junit.Test
 import org.junit.runner.RunWith
-
 import org.junit.Assert.*
 
 /**
- * Instrumented test, which will execute on an Android device.
- *
- * See [testing documentation](http://d.android.com/tools/testing).
+ * Przykładowy test instrumentowany, który wykonuje się na fizycznym urządzeniu lub emulatorze Androida.
+ * Pozwala na testowanie funkcjonalności wymagających dostępu do API Androida (np. Context).
  */
 @RunWith(AndroidJUnit4::class)
 class ExampleInstrumentedTest {
+    /**
+     * Test sprawdza, czy pakiet aplikacji jest poprawny w kontekście urządzenia.
+     */
     @Test
     fun useAppContext() {
-        // Context of the app under test.
+        // Kontekst aplikacji w trakcie testów
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("com.example.quicknote", appContext.packageName)
     }
